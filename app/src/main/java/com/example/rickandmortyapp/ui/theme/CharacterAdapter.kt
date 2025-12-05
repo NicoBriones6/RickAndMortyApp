@@ -13,6 +13,7 @@ import com.example.rickandmortyapp.model.Character
 class CharacterAdapter(
     private val list: MutableList<Character>,
     private val onItemClick: (Character) -> Unit) : RecyclerView.Adapter<CharacterAdapter.ViewHolder>() {
+
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         init {
             itemView.setOnClickListener {
@@ -49,5 +50,6 @@ class CharacterAdapter(
         list.addAll(newList)
         notifyDataSetChanged()
     }
+
 
 }

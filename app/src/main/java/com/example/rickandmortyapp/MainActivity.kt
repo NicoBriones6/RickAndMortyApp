@@ -41,6 +41,13 @@ class MainActivity : ComponentActivity() {
         recyclerCharacters.layoutManager = LinearLayoutManager(this)
         recyclerCharacters.adapter = adapter
 
+        recyclerCharacters.itemAnimator?.apply {
+            addDuration = 200
+            removeDuration = 200
+            moveDuration = 200
+            changeDuration = 200
+        }
+
         viewModel.characters.observe(this) { list ->
             adapter.updateData(list)
         }
