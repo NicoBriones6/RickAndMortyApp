@@ -10,10 +10,17 @@ import com.bumptech.glide.Glide
 import com.example.rickandmortyapp.R
 import com.example.rickandmortyapp.model.Character
 
-class CharacterAdapter(private val list: List<Character>) :
-    RecyclerView.Adapter<CharacterAdapter.ViewHolder>() {
-
+class CharacterAdapter(
+    private val list: MutableList<Character>,
+    private val onItemClick: (Character) -> Unit) : RecyclerView.Adapter<CharacterAdapter.ViewHolder>() {
     inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        init {
+            itemView.setOnClickListener {
+                if (adapterPosition != RecyclerView.NO_POSITION) {
+                    onItemClick(list[adapterPosition])
+                }
+            }
+        }
         val img: ImageView = view.findViewById(R.id.imgCharacter)
         val name: TextView = view.findViewById(R.id.tvName)
         val species: TextView = view.findViewById(R.id.tvSpecies)
@@ -36,4 +43,11 @@ class CharacterAdapter(private val list: List<Character>) :
             .centerCrop()
             .into(holder.img)
     }
+
+    fun updateData(newList: List<Character>) {
+        list.clear()
+        list.addAll(newList)
+        notifyDataSetChanged()
+    }
+
 }

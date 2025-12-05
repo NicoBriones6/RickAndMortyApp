@@ -1,24 +1,22 @@
 package com.example.rickandmortyapp
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.lifecycleScope
+import androidx.activity.ComponentActivity
+import androidx.activity.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.rickandmortyapp.api.RetrofitInstance
 import com.example.rickandmortyapp.model.Character
 import com.example.rickandmortyapp.ui.theme.CharacterAdapter
+import com.example.rickandmortyapp.viewmodel.CharacterViewModel
 import androidx.recyclerview.widget.RecyclerView
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : ComponentActivity() {
 
-    private val characters = mutableListOf<Character>()
+    private val viewModel: CharacterViewModel by viewModels()
+
     private lateinit var adapter: CharacterAdapter
-
     private lateinit var recyclerCharacters: RecyclerView
     private lateinit var swipe: SwipeRefreshLayout
 
@@ -29,34 +27,58 @@ class MainActivity : AppCompatActivity() {
         recyclerCharacters = findViewById(R.id.recyclerCharacters)
         swipe = findViewById(R.id.swipe)
 
-        adapter = CharacterAdapter(characters)
+        adapter = CharacterAdapter(mutableListOf()) { character ->
+            val intent = Intent(this, DetailActivity::class.java)
+            intent.putExtra("name", character.name)
+            intent.putExtra("species", character.species)
+            intent.putExtra("status", character.status)
+            intent.putExtra("image", character.image)
+            intent.putExtra("origin", character.origin.name)
+            intent.putExtra("location", character.location.name)
+            startActivity(intent)
+        }
+
         recyclerCharacters.layoutManager = LinearLayoutManager(this)
         recyclerCharacters.adapter = adapter
 
-        swipe.setOnRefreshListener {
-            fetchCharacters()
+        viewModel.characters.observe(this) { list ->
+            adapter.updateData(list)
         }
 
-        // Primera carga
-        swipe.isRefreshing = true
-        fetchCharacters()
-    }
+        recyclerCharacters.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
 
-    private fun fetchCharacters(page: Int = 1) {
-        lifecycleScope.launch {
-            try {
-                val response = withContext(Dispatchers.IO) {
-                    RetrofitInstance.api.getCharacters(page)
+                if (dy > 0) { // Scrollea hacia abajo
+                    val layoutManager = recyclerCharacters.layoutManager as LinearLayoutManager
+                    val visibleItemCount = layoutManager.childCount
+                    val totalItemCount = layoutManager.itemCount
+                    val firstVisibleItemPosition = layoutManager.findFirstVisibleItemPosition()
+
+                    val isAtBottom = (visibleItemCount + firstVisibleItemPosition) >= totalItemCount
+
+                    if (isAtBottom) {
+                        viewModel.fetchCharacters() // Cargar la siguiente página
+                    }
                 }
-                characters.clear()
-                characters.addAll(response.results)
-                adapter.notifyDataSetChanged()
-            } catch (e: Exception) {
-                e.printStackTrace()
-                Toast.makeText(this@MainActivity, "Error: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
-            } finally {
-                swipe.isRefreshing = false
             }
+        })
+
+
+        viewModel.errorMessage.observe(this) { message ->
+            Toast.makeText(this, "Error: $message", Toast.LENGTH_LONG).show()
         }
+
+        viewModel.isLoading.observe(this) { loading ->
+            swipe.isRefreshing = loading
+        }
+
+        swipe.setOnRefreshListener {
+            viewModel.fetchCharacters()
+        }
+
+        viewModel.fetchCharacters()
     }
+
+
 }
